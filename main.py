@@ -227,11 +227,35 @@ plt.tight_layout()
 plt.savefig('1c_installed_capacity_mix.png', dpi=300)
 plt.show()
 
-###################################################
-####   (c) Connect to three other countries   #####
-###################################################
+# Battery storage stackplot
+fig, ax = plt.subplots(figsize=(10, 3))
 
-# Adding connection to DK
-#network.add("Link", 'DK - SE', bus0="electricity bus country a", bus1="electricity bus country b",  p_nom_extendable=True,  p_min_pu=-1,
-#              length=600, # length (in km) between country a and country b
-#             capital_cost=400*600) # capital cost * length
+# In order to create a stackplot we need to separate the positive and negative parts, using the clip method.
+bat_dis = network.storage_units_t.p.clip(lower=0)  # positive: discharge
+bat_ch  = network.storage_units_t.p.clip(upper=0)  # negative: charging
+
+# Note that p > 0 in a bus means injection into the bus (i.e. generation or in this case discharge from the battery into the bus).
+
+# Stack renewables + battery discharge together above 0
+renewables = network.generators_t.p[['Onshore wind', 'Offshore wind', 'Solar']].sum(axis=1).rename("Renewables")
+supply = pd.concat([
+    bat_dis.rename(columns={"battery storage": "Battery discharge"}),
+    renewables.to_frame("Renewables"),
+], axis=1)
+supply.plot.area(ax=ax, linewidth=0, stacked=True,
+                 color=["#2ca02c", "#1f77b4"])
+
+# Battery charging below 0 (separate call is fine here — it naturally starts from 0 and goes negative)
+bat_ch.rename(columns={"battery storage": "Battery charge"}).plot.area(
+    ax=ax, linewidth=0, stacked=True, color=["#ff7f0e"])
+
+# Demand (constant)
+network.loads_t.p_set.sum(axis=1).plot(ax=ax, color="black", linestyle="--", label="Demand")
+
+ax.axhline(0, color="black", linewidth=0.5)
+ax.set_ylabel("MW")
+ax.set_ylim(-200, 1200)
+ax.legend(frameon=False, bbox_to_anchor=(1.05, 1))
+plt.tight_layout()
+plt.savefig('1c_battery_stackplot.png', dpi=300)
+plt.show()
