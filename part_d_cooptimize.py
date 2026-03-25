@@ -134,32 +134,55 @@ test_NOR = test_NOR[test_NOR["Year"]==2012]
 test_NOR['date'] = pd.to_datetime(test_NOR[['Year','Month','Day']])
 hydro_inflow_NOR = test_NOR.set_index('date')['Inflow [GWh]'].reindex(network.snapshots).fillna(0).values
 
+test_DEU = pd.read_csv('data/inflow/Hydro_Inflow_DE.csv')
+test_DEU = test_DEU[test_DEU["Year"]==2012]
+test_DEU['date'] = pd.to_datetime(test_DEU[['Year','Month','Day']])
+hydro_inflow_DEU = test_DEU.set_index('date')['Inflow [GWh]'].reindex(network.snapshots).fillna(0).values
+
+
 network.add(
     "StorageUnit", f"pumped hydro SWE",
     bus="SWE",
     carrier="pumped hydro",
-    max_hours=10, # Based on DEA data for energy storage (PHS)
-    p_nom_extendable=True, 
+    p_nom_extendable=True,
+    p_nom_max=16000,   # 👈 THIS is the upper limit (MW)
+    max_hours=8, # Based on DEA data for energy storage (PHS)
     capital_cost=annuity(80,0.07)*400000,
-    efficiency_store=0.86, # Based on DEA data for energy storage (PHS)
-    efficiency_dispatch=0.86, # Based on DEA data for energy storage (PHS)
+    efficiency_store=0.9, # Based on DEA data for energy storage (PHS)
+    efficiency_dispatch=0.9, # Based on DEA data for energy storage (PHS)
     cyclic_state_of_charge=True,
     inflow=hydro_inflow_SWE,
-    marginal_cost=5
+    marginal_cost=1
 )
 
 network.add(
     "StorageUnit", f"pumped hydro NOR",
     bus="NOR",
     carrier="pumped hydro",
-    max_hours=10, 
-    p_nom_extendable=True, 
+    p_nom_extendable=True,
+    p_nom_max=33000,   # 👈 THIS is the upper limit (MW)
+    max_hours=8, 
     capital_cost=annuity(80,0.07)*400000,
-    efficiency_store=0.86, # Based on DEA data for energy storage (PHS)
-    efficiency_dispatch=0.86, # Based on DEA data for energy storage (PHS)
+    efficiency_store=0.9, # Based on DEA data for energy storage (PHS)
+    efficiency_dispatch=0.9, # Based on DEA data for energy storage (PHS)
     cyclic_state_of_charge=True,
     inflow=hydro_inflow_NOR,
-    marginal_cost=5
+    marginal_cost=1
+)
+
+network.add(
+    "StorageUnit", f"pumped hydro DEU",
+    bus="DEU",
+    carrier="pumped hydro",
+    p_nom_extendable=True,
+    p_nom_max=7000,   # 👈 THIS is the upper limit (MW)
+    max_hours=8, 
+    capital_cost=annuity(80,0.07)*400000,
+    efficiency_store=0.9, # Based on DEA data for energy storage (PHS)
+    efficiency_dispatch=0.9, # Based on DEA data for energy storage (PHS)
+    cyclic_state_of_charge=True,
+    inflow=hydro_inflow_DEU,
+    marginal_cost=1
 )
 
 
@@ -190,19 +213,19 @@ cap_table = (optimal_capacities.rename_axis("name").reset_index(name="capacity")
     .fillna(0))
 cap_table = cap_table.rename(index={"DNK": "Denmark", "SWE": "Sweden","NOR": "Norway", "DEU": "Germany"})
 
-# Plotting 
-plt.figure(dpi=400)
-cap_table.plot(kind="bar",stacked=True,color=['blue', 'dodgerblue', 'orange', 'crimson', 'darkviolet', 'lightgreen', 'pink'],figsize=(8,6),rot=0)
-plt.ylabel("Installed capacity [GW]")
-plt.xlabel("")
-plt.legend(['Onshore wind', 'Offshore wind', 'Solar PV', 'Gas (OCGT)', 'Gas (CCGT)', 'Battery storage', 'Hydro'])
+# Plotting
+fig, ax = plt.subplots(figsize=(8,6), dpi=400)
+cap_table.plot(kind="bar",stacked=True,color=['blue', 'dodgerblue', 'orange', 'crimson', 'darkviolet', 'lightgreen', 'pink'],rot=0,ax=ax)
+ax.set_ylabel("Installed capacity [GW]")
+ax.set_xlabel("")
+ax.legend(['Onshore wind', 'Offshore wind', 'Solar PV', 'Gas (OCGT)', 'Gas (CCGT)', 'Battery storage', 'PHS'])
 plt.tight_layout()
 plt.savefig("1d_capacities.png", dpi=300, bbox_inches="tight")
 plt.show()
 
 total_capacities = cap_table.sum(axis=0)
 
-tech_labels = ['Onshore wind', 'Offshore wind', 'Solar PV', 'Gas (OCGT)', 'Gas (CCGT)', 'Battery storage', 'Hydro']
+tech_labels = ['Onshore wind', 'Offshore wind', 'Solar PV', 'Gas (OCGT)', 'Gas (CCGT)', 'Battery storage', 'PHS']
 perc = 100 * total_capacities / total_capacities.sum()
 labels = [f"{tech}\n{p:.1f}%" for tech, p in zip(tech_labels, perc)]
 fig, ax = plt.subplots(figsize=(7,7), dpi=200)
@@ -215,4 +238,37 @@ ax.pie(
 )
 plt.tight_layout()
 plt.savefig("1d_total_capacities.png", dpi=300, bbox_inches="tight")
+plt.show()
+
+gen_by_name = network.generators_t.p.sum() / 1e6
+gen_by_name.index = gen_by_name.index.str.replace(r"\s+(DNK|SWE|NOR|DEU)$", "", regex=True)
+gen_by_tech = gen_by_name.groupby(gen_by_name.index).sum()
+
+storage_by_name = network.storage_units_t.p.clip(lower=0).sum() / 1e6
+storage_by_name.index = storage_by_name.index.str.replace(r"\s+(DNK|SWE|NOR|DEU)$", "", regex=True)
+storage_by_tech = storage_by_name.groupby(storage_by_name.index).sum()
+
+generation_mix = pd.concat([gen_by_tech, storage_by_tech]).reindex(
+    ["Onshore wind", "Offshore wind", "Solar", "OCGT", "CCGT", "battery storage", "PHS"]
+).fillna(0)
+
+print("Annual generation mix in TWh:")
+print(generation_mix)
+
+
+perc_gen = 100 * generation_mix / generation_mix.sum()
+gen_labels = [f"{tech}\n{p:.1f}%" for tech, p in zip(tech_labels, perc_gen)]
+
+fig, ax = plt.subplots(figsize=(6,5), dpi=300)
+ax.pie(
+    generation_mix,
+    labels=gen_labels,
+    colors=['blue', 'dodgerblue', 'orange', 'crimson', 'darkviolet', 'lightgreen', 'pink'],
+    startangle=90,
+    labeldistance=1.18,
+    wedgeprops={'linewidth': 0}
+)
+plt.title('Annual electricity generation mix', y=1.05, fontweight='bold')
+plt.tight_layout()
+plt.savefig('1d_annual_generation_mix.png', dpi=300)
 plt.show()
