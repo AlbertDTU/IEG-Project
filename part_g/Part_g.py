@@ -383,7 +383,8 @@ storage_by_name.index = storage_by_name.index.str.replace(r"\s+(DNK|SWE|NOR|DEU)
 storage_by_tech = storage_by_name.groupby(storage_by_name.index).sum()
 
 # PART G: gas-to-power output from links
-gas_link_output = network.links_t.p1[[name for name in network.links.index if name.startswith("OCGT ") or name.startswith("CCGT ")]].sum() / 1e6
+gas_power_links = [name for name in network.links.index if name.startswith("OCGT ") or name.startswith("CCGT ")]
+gas_link_output = (-network.links_t.p1[gas_power_links]).clip(lower=0).sum() / 1e6
 gas_link_output.index = gas_link_output.index.str.replace(r"\s+(DNK|SWE|NOR|DEU)$", "", regex=True)
 gas_link_output = gas_link_output.groupby(gas_link_output.index).sum()
 
@@ -423,7 +424,7 @@ storage_dispatch = network.storage_units_t.p.copy()
 storage_dispatch.columns = storage_dispatch.columns.str.replace(r"(battery storage|pumped hydro)\s+(DNK|SWE|NOR|DEU)$", r"\1", regex=True)
 storage_by_tech_time = storage_dispatch.T.groupby(level=0).sum().T
 
-gas_dispatch = network.links_t.p1[[name for name in network.links.index if name.startswith("OCGT ") or name.startswith("CCGT ")]].copy()
+gas_dispatch = (-network.links_t.p1[gas_power_links]).copy().clip(lower=0)
 gas_dispatch.columns = gas_dispatch.columns.str.replace(r"\s+(DNK|SWE|NOR|DEU)$", "", regex=True)
 gas_by_tech_time = gas_dispatch.T.groupby(level=0).sum().T
 

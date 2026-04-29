@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 import pypsa
@@ -78,10 +79,8 @@ def build_network():
 
 # ── CO2 sweep ─────────────────────────────────────────────────────────────────
 # Range: from 9 Mt down to 0.5 Mt
-co2_limits = np.concatenate([
-    np.linspace(9e6, 1e6, 15),
-    np.array([0.5e6])
-])
+co2_limits = np.linspace(9e6, 0, 15)
+
 
 gen_cols   = ["Onshore wind", "Offshore wind", "Solar", "OCGT", "CCGT", "battery storage"]
 cap_cols   = ["Onshore wind", "Offshore wind", "Solar", "OCGT", "CCGT", "battery storage"]
@@ -159,6 +158,9 @@ df_generation = df_generation.sort_index(ascending=False)
 df_capacity   = df_capacity.sort_index(ascending=False)
 
 
+os.makedirs('plots_part_f', exist_ok=True)
+
+
 def plot_stacked_area(df, ylabel, title, filename):
     _, ax = plt.subplots(figsize=(10, 5), dpi=300)
 
@@ -196,12 +198,12 @@ plot_stacked_area(
     df_generation,
     ylabel='Annual generation [TWh/yr]',
     title='Generation mix vs. CO\u2082 constraint (Denmark)',
-    filename='part_f_generation_mix.png',
+    filename='plots_part_f/part_f_generation_mix.png',
 )
 
 plot_stacked_area(
     df_capacity,
     ylabel='Installed capacity [GW]',
     title='Capacity mix vs. CO\u2082 constraint (Denmark)',
-    filename='part_f_capacity_mix.png',
+    filename='plots_part_f/part_f_capacity_mix.png',
 )

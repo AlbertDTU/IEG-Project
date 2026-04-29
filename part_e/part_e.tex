@@ -1,0 +1,184 @@
+\section{e) Power Transfer Distribution Factor (PTDF) Matrix}
+
+\subsection*{Network Topology}
+
+The network defined in part~d) consists of four buses and six transmission lines. We use the following ordering throughout this section:
+
+\textbf{Buses:} Denmark (DNK), Sweden (SWE), Norway (NOR), Germany (DEU). Denmark is chosen as the reference bus, i.e.\ $\theta_\text{DNK} = 0$.
+
+\textbf{Lines} (defined by their \emph{from}-bus and \emph{to}-bus):
+\begin{enumerate}
+    \item DK-NO: DNK $\to$ NOR
+    \item DK-SE: DNK $\to$ SWE
+    \item DK-DE: DNK $\to$ DEU
+    \item SE-NO: SWE $\to$ NOR
+    \item SE-DE: SWE $\to$ DEU
+    \item NO-DE: NOR $\to$ DEU
+\end{enumerate}
+
+All lines share the same unitary reactance $x = 0.1$\,pu, giving a susceptance of $b = 1/x = 10$\,pu for every line.
+
+\subsection*{Incidence Matrix}
+
+The node-branch incidence matrix $\mathbf{K}$ is defined element-wise as
+\begin{equation}
+    K_{i,\ell} =
+    \begin{cases}
+        +1 & \text{if node } i \text{ is the \emph{from}-end of line } \ell, \\
+        -1 & \text{if node } i \text{ is the \emph{to}-end of line } \ell, \\
+         0 & \text{otherwise.}
+    \end{cases}
+\end{equation}
+
+Following the bus and line ordering defined above, the incidence matrix is
+
+\begin{equation}
+\mathbf{K} =
+\bordermatrix{
+             & \text{DK-NO} & \text{DK-SE} & \text{DK-DE} & \text{SE-NO} & \text{SE-DE} & \text{NO-DE} \cr
+\text{DNK} & +1 & +1 & +1 &  0 &  0 &  0 \cr
+\text{SWE} &  0 & -1 &  0 & +1 & +1 &  0 \cr
+\text{NOR} & -1 &  0 &  0 & -1 &  0 & +1 \cr
+\text{DEU} &  0 &  0 & -1 &  0 & -1 & -1 \cr
+}
+\end{equation}
+
+\subsection*{PTDF Matrix}
+
+Under the DC (linearised AC) power flow approximation, the nodal susceptance matrix (graph Laplacian) is
+\begin{equation}
+    \mathbf{L} = \mathbf{K}\,\mathbf{B}_\text{diag}\,\mathbf{K}^\top,
+\end{equation}
+where $\mathbf{B}_\text{diag} = b\,\mathbf{I}_6 = 10\,\mathbf{I}_6$ is the diagonal matrix of line susceptances. Since all susceptances are equal, $\mathbf{L} = 10\,\mathbf{K}\mathbf{K}^\top$.
+
+Computing $\mathbf{K}\mathbf{K}^\top$ directly, we obtain
+\begin{equation}
+\mathbf{L} = 10 \begin{pmatrix}
+ 3 & -1 & -1 & -1 \\
+-1 &  3 & -1 & -1 \\
+-1 & -1 &  3 & -1 \\
+-1 & -1 & -1 &  3
+\end{pmatrix}.
+\end{equation}
+
+This symmetric result arises because the four-node network forms a complete graph $K_4$: each node connects to all three other nodes, yielding diagonal entries of $3b = 30$ and off-diagonal entries of $-b = -10$.
+
+To form the reduced system, we remove the row and column corresponding to the reference bus DNK, giving the $3\times 3$ reduced Laplacian
+\begin{equation}
+\mathbf{L}_r = 10 \begin{pmatrix}
+ 3 & -1 & -1 \\
+-1 &  3 & -1 \\
+-1 & -1 &  3
+\end{pmatrix}.
+\end{equation}
+
+We compute the inverse analytically. The determinant of the inner $3\times 3$ matrix is
+\begin{equation}
+    \det\begin{pmatrix} 3 & -1 & -1 \\ -1 & 3 & -1 \\ -1 & -1 & 3 \end{pmatrix}
+    = 3(9-1) - (-1)(-3-1) + (-1)(1+3) = 24 - 4 - 4 = 16.
+\end{equation}
+
+By cofactor expansion, the adjugate matrix equals $\begin{pmatrix}8&4&4\\4&8&4\\4&4&8\end{pmatrix}$, so
+\begin{equation}
+\mathbf{L}_r^{-1} = \frac{1}{10} \cdot \frac{1}{16}
+\begin{pmatrix}8&4&4\\4&8&4\\4&4&8\end{pmatrix}
+= \frac{1}{160}
+\begin{pmatrix}8&4&4\\4&8&4\\4&4&8\end{pmatrix}.
+\end{equation}
+
+The PTDF matrix is then
+\begin{equation}
+    \mathbf{H} = \mathbf{B}_\text{diag}\,\mathbf{K}_r^\top\,\mathbf{L}_r^{-1},
+\end{equation}
+where $\mathbf{K}_r$ is the incidence matrix with the reference bus row removed. Evaluating:
+\begin{equation}
+\mathbf{H} = 10\,\mathbf{K}_r^\top \cdot \frac{1}{160}
+\begin{pmatrix}8&4&4\\4&8&4\\4&4&8\end{pmatrix}
+= \frac{1}{16}\,\mathbf{K}_r^\top
+\begin{pmatrix}8&4&4\\4&8&4\\4&4&8\end{pmatrix}.
+\end{equation}
+
+Carrying out the matrix multiplication row by row (one row per line), the PTDF matrix is
+
+\begin{equation}
+\mathbf{H} =
+\bordermatrix{
+               & \text{SWE} & \text{NOR} & \text{DEU} \cr
+\text{DK-NO}  & -\tfrac{1}{4} & -\tfrac{1}{2} & -\tfrac{1}{4} \cr
+\text{DK-SE}  & -\tfrac{1}{2} & -\tfrac{1}{4} & -\tfrac{1}{4} \cr
+\text{DK-DE}  & -\tfrac{1}{4} & -\tfrac{1}{4} & -\tfrac{1}{2} \cr
+\text{SE-NO}  & +\tfrac{1}{4} & -\tfrac{1}{4} &  0            \cr
+\text{SE-DE}  & +\tfrac{1}{4} &  0            & -\tfrac{1}{4} \cr
+\text{NO-DE}  &  0            & +\tfrac{1}{4} & -\tfrac{1}{4} \cr
+}
+\end{equation}
+
+Each entry $H_{\ell,i}$ gives the fraction of an additional 1\,MW injected at bus $i$ (with simultaneous withdrawal at the reference bus DNK) that flows through line $\ell$.
+
+\subsection*{Verification Against the PyPSA Model}
+
+We read the nodal power imbalances (generation plus storage dispatch minus load) at the first simulation timestep, $t_0 = \text{2015-01-01 00:00}$, from the optimised PyPSA model. The dispatch at this hour is dominated by onshore wind production across all countries and CCGT generation in Sweden and Germany, with Norwegian pumped hydro also dispatching. The resulting net injections are summarised in Table~\ref{tab:net_injection}.
+
+\begin{table}[h]
+\centering
+\caption{Net power injection per bus at $t_0$ (generation + storage dispatch $-$ demand).}
+\label{tab:net_injection}
+\begin{tabular}{lrrrrr}
+\toprule
+Bus & Generation [MW] & Storage [MW] & Demand [MW] & Net injection [MW] \\
+\midrule
+DNK & 6079.6  & 0.0    & 3211.0  & $+$2868.6  \\
+SWE & 10382.1 & 0.0    & 14845.0 & $-$4462.9  \\
+NOR & 16165.7 & 2902.4 & 15471.0 & $+$3597.1  \\
+DEU & 42543.1 & 0.0    & 44546.0 & $-$2002.9  \\
+\midrule
+\textbf{Total} & & & & $0.0$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Since DNK is the reference bus, the PTDF formula gives the power flows as
+\begin{equation}
+    \mathbf{f} = \mathbf{H}\,\mathbf{P}_r,
+    \qquad
+    \mathbf{P}_r = \begin{pmatrix} P_\text{SWE} \\ P_\text{NOR} \\ P_\text{DEU} \end{pmatrix}
+    = \begin{pmatrix} -4462.9 \\ 3597.1 \\ -2002.9 \end{pmatrix} \text{MW}.
+\end{equation}
+
+Computing each line flow explicitly:
+\begin{align}
+f_\text{DK-NO} &= -\tfrac{1}{4}(-4462.9) + \left(-\tfrac{1}{2}\right)(3597.1) + \left(-\tfrac{1}{4}\right)(-2002.9) \nonumber\\
+               &= 1115.7 - 1798.6 + 500.7 = -182.1\text{ MW}, \\[4pt]
+f_\text{DK-SE} &= -\tfrac{1}{2}(-4462.9) + \left(-\tfrac{1}{4}\right)(3597.1) + \left(-\tfrac{1}{4}\right)(-2002.9) \nonumber\\
+               &= 2231.5 - 899.3 + 500.7 = 1832.9\text{ MW}, \\[4pt]
+f_\text{DK-DE} &= -\tfrac{1}{4}(-4462.9) + \left(-\tfrac{1}{4}\right)(3597.1) + \left(-\tfrac{1}{2}\right)(-2002.9) \nonumber\\
+               &= 1115.7 - 899.3 + 1001.5 = 1217.9\text{ MW}, \\[4pt]
+f_\text{SE-NO} &= +\tfrac{1}{4}(-4462.9) + \left(-\tfrac{1}{4}\right)(3597.1) + 0\cdot(-2002.9) \nonumber\\
+               &= -1115.7 - 899.3 = -2015.0\text{ MW}, \\[4pt]
+f_\text{SE-DE} &= +\tfrac{1}{4}(-4462.9) + 0\cdot(3597.1) + \left(-\tfrac{1}{4}\right)(-2002.9) \nonumber\\
+               &= -1115.7 + 500.7 = -615.0\text{ MW}, \\[4pt]
+f_\text{NO-DE} &= 0\cdot(-4462.9) + \tfrac{1}{4}(3597.1) + \left(-\tfrac{1}{4}\right)(-2002.9) \nonumber\\
+               &= 899.3 + 500.7 = 1400.0\text{ MW}.
+\end{align}
+
+Table~\ref{tab:ptdf_verify} compares the analytically computed flows with the values read directly from the PyPSA model. The two sets of results agree to within numerical precision, confirming the correctness of our hand-derived incidence matrix and PTDF matrix.
+
+\begin{table}[h]
+\centering
+\caption{Comparison of line flows computed via the PTDF matrix and obtained from the PyPSA simulation at $t_0$.}
+\label{tab:ptdf_verify}
+\begin{tabular}{lrrr}
+\toprule
+Line & PTDF calculation [MW] & PyPSA result [MW] & Difference [MW] \\
+\midrule
+DK-NO & $-182.1$ & $-182.1$ & $0.0$ \\
+DK-SE & $1832.9$ & $1832.9$ & $0.0$ \\
+DK-DE & $1217.9$ & $1217.9$ & $0.0$ \\
+SE-NO & $-2015.0$ & $-2015.0$ & $0.0$ \\
+SE-DE & $-615.0$ & $-615.0$ & $0.0$ \\
+NO-DE & $1400.0$ & $1400.0$ & $0.0$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The perfect agreement confirms that the DC approximation is self-consistent: when all line reactances are equal and no resistance losses are included, the PTDF matrix derived analytically is identical to the power transfer factors implicitly used by PyPSA's linearised power flow solver. The negative flows on DK-NO and SE-NO indicate net power flowing from Norway to Denmark and from Norway to Sweden, respectively, which is consistent with Norway's large surplus at this timestep driven by strong wind and hydro dispatch.

@@ -1,5 +1,6 @@
 .vscode/
 *.log
 .claude/
-part_e.tex
 plots_part_f/
+CLAUDE.md
+.project_description/
