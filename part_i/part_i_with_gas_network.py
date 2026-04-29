@@ -392,7 +392,7 @@ network.add("GlobalConstraint",
       carrier_attribute="co2_emissions",
       sense="<=",
       #constant=co2_emissions_sum * 0.7) # co2 emissions limit in tons
-      constant = 10000000) # co2 emissions limit in tons
+      constant = 65e6) # co2 emissions limit in tons
 
 # =============================================================================
 # 8. OPTIMIZATION
